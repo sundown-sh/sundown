@@ -1,0 +1,37 @@
+# Sundown CODEOWNERS
+#
+# Each line is a file pattern followed by one or more owners. The last
+# matching pattern takes precedence. When a PR modifies a file matched
+# below, the listed owner(s) are auto-requested for review and — if the
+# branch protection rule is configured to require CODEOWNERS approval —
+# their approval is required to merge.
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+
+# Default — everything not matched by a more specific rule.
+*                                @bdLinick
+
+# Connectors call third-party APIs and handle credentials.
+# Tighten this section first when adding additional maintainers.
+/app/integrations/               @bdLinick
+
+# Anything that touches auth, crypto, or audit logs needs an extra eye.
+/app/security.py                 @bdLinick
+/app/audit.py                    @bdLinick
+/app/api/auth.py                 @bdLinick
+/app/api/deps.py                 @bdLinick
+
+# Database schema, migrations, and the matching engine — change carefully.
+/app/models/                     @bdLinick
+/alembic/                        @bdLinick
+/app/matching/                   @bdLinick
+
+# CI, release pipelines, and Dockerfile are part of the supply chain.
+/.github/                        @bdLinick
+/Dockerfile                      @bdLinick
+/docker-compose.yml              @bdLinick
+
+# Public-facing docs.
+/README.md                       @bdLinick
+/SECURITY.md                     @bdLinick
+/CONTRIBUTING.md                 @bdLinick
