@@ -62,7 +62,9 @@ jobs:
           pip install -e '.[dev]'
       - name: Pytest
         env:
-          SUNDOWN_SECRET_KEY: ci-test-secret
+          SUNDOWN_SECRET_KEY: ci-test-secret-please-be-32-bytes-long
+          SUNDOWN_ENV: test
+          SUNDOWN_DISABLE_SCHEDULER: "1"
           DATABASE_URL: sqlite:///./test.db
         run: pytest --cov=app --cov-report=term-missing
 
