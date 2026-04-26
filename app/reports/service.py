@@ -34,7 +34,6 @@ def generate_report(
     settings = get_settings()
     settings.ensure_dirs()
     ts = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-    out_path = settings.reports_dir / f"sundown-{ts}.{kind}"
 
     # Render. PDF needs the report id for the footer, so we pre-create
     # the row, then re-render once we know it.
@@ -51,15 +50,23 @@ def generate_report(
     db.add(row)
     db.flush()
 
+    artifact_ext: str
     if kind == "json":
         content = render_json(data)
+        artifact_ext = "json"
     elif kind == "csv":
         content = render_csv(data)
+        artifact_ext = "csv"
     elif kind == "html":
         content = render_html(data, report_id=row.id)
+        artifact_ext = "html"
     else:
-        content = render_pdf(data, report_id=row.id)
+        content, artifact_ext = render_pdf(data, report_id=row.id)
+        # User asked for PDF but we may only have printable HTML (no WeasyPrint).
+        if artifact_ext != kind:
+            row.kind = artifact_ext
 
+    out_path = settings.reports_dir / f"sundown-{ts}.{artifact_ext}"
     write_to_path(content, out_path)
     row.path = str(out_path)
     row.sha256 = hashlib.sha256(content).hexdigest()

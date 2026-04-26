@@ -1,7 +1,7 @@
 """Reports API: list, generate, download."""
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -52,13 +52,20 @@ def create_report(
         generated_by_user_id=p.id if p.actor_type == "user" else None,
     )
     ip, ua = request_meta(request)
+    payload: dict[str, Any] = {
+        "kind": row.kind,
+        "ghost_count": row.ghost_count,
+        "sha256": row.sha256,
+    }
+    if body.kind != row.kind:
+        payload["requested_kind"] = body.kind
     record(
         db,
         actor=ActorRef(p.actor_type, p.id),
         action="report.generate",
         target_type="report",
         target_id=row.id,
-        payload={"kind": body.kind, "ghost_count": row.ghost_count, "sha256": row.sha256},
+        payload=payload,
         ip=ip,
         user_agent=ua,
     )

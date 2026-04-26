@@ -58,7 +58,10 @@ class Settings(BaseSettings):
 
     # --- Auth / crypto ---
     secret_key: str = Field(default="", alias="SUNDOWN_SECRET_KEY")
-    jwt_ttl_minutes: int = Field(60, alias="SUNDOWN_JWT_TTL_MINUTES")
+    # 8h is a reasonable default for a self-hosted admin/audit tool: long
+    # enough to cover a working day without re-auth, short enough that a
+    # stolen token does not become a permanent foothold. Refresh extends.
+    jwt_ttl_minutes: int = Field(480, alias="SUNDOWN_JWT_TTL_MINUTES")
     refresh_ttl_days: int = Field(14, alias="SUNDOWN_REFRESH_TTL_DAYS")
 
     # --- Bootstrap admin ---

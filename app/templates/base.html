@@ -9,9 +9,42 @@
   <script src="https://unpkg.com/htmx.org@2.0.4" crossorigin></script>
   <script>
     // tiny helper so all htmx requests carry the JWT we stash in localStorage
-    document.body && document.body.addEventListener('htmx:configRequest', (e) => {
+    document.addEventListener('htmx:configRequest', (e) => {
       const tok = localStorage.getItem('sundown_token');
       if (tok) e.detail.headers['Authorization'] = 'Bearer ' + tok;
+    });
+    // any 401 from the API means our session is gone — bounce to login
+    document.addEventListener('htmx:responseError', (e) => {
+      if (e.detail && e.detail.xhr && e.detail.xhr.status === 401) {
+        localStorage.removeItem('sundown_token');
+        localStorage.removeItem('sundown_refresh');
+        document.cookie = 'sundown_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        window.location = '/login';
+      }
+    });
+    // sign-out: tell the server to revoke the refresh token, clear
+    // everything client-side, then redirect. The access cookie is
+    // HttpOnly so we cannot delete it from JS — the server clears it.
+    document.addEventListener('click', async (e) => {
+      const btn = e.target && e.target.closest && e.target.closest('#sundown-signout');
+      if (!btn) return;
+      e.preventDefault();
+      const tok = localStorage.getItem('sundown_token');
+      const refresh = localStorage.getItem('sundown_refresh');
+      try {
+        await fetch('/ui/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(tok ? {'Authorization': 'Bearer ' + tok} : {}),
+          },
+          body: JSON.stringify({refresh_token: refresh || ''}),
+          credentials: 'same-origin',
+        });
+      } catch (_) { /* ignore — we still want to redirect */ }
+      localStorage.removeItem('sundown_token');
+      localStorage.removeItem('sundown_refresh');
+      window.location = '/login';
     });
   </script>
   <style>
@@ -28,9 +61,9 @@
   <header class="border-b border-slate-200 bg-white">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-6">
       <a href="/" class="flex items-center gap-2 font-semibold text-slate-900">
-        <svg viewBox="0 0 32 32" class="w-6 h-6">
-          <circle cx="16" cy="16" r="12" fill="#f59e0b" />
-          <rect y="20" width="32" height="12" fill="#1e293b" />
+        <svg viewBox="0 0 32 32" class="w-6 h-6" aria-hidden="true">
+          <circle cx="16" cy="16" r="12" fill="#ea580c" />
+          <rect y="20" width="32" height="12" fill="#0f172a" />
         </svg>
         <span>Sundown</span>
         <span class="text-xs text-slate-400 font-normal">v{{ version }}</span>
@@ -53,8 +86,8 @@
         {% if principal %}
           <span class="text-slate-700">{{ principal.email or principal.id }}</span>
           <span class="ml-1 text-xs uppercase tracking-wider text-slate-400">{{ principal.role }}</span>
-          <button hx-post="/ui/logout" hx-swap="none"
-                  class="ml-3 text-slate-500 hover:text-slate-900">sign out</button>
+          <button id="sundown-signout" type="button"
+                  class="ml-3 text-slate-500 hover:text-slate-900 cursor-pointer">sign out</button>
         {% else %}
           <a href="/login" class="text-slate-700 underline">sign in</a>
         {% endif %}

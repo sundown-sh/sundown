@@ -126,9 +126,60 @@ def login_page(
 
 
 @router.post("/ui/logout")
-def ui_logout() -> Response:
-    resp = RedirectResponse(url="/login", status_code=302)
-    resp.delete_cookie("sundown_token")
+async def ui_logout(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Response:
+    """UI-side logout. Mirrors ``POST /api/v1/auth/logout``: if the JS
+    sends a refresh token in the body we revoke its ``jti`` server-side
+    so the user really is logged out, not just locally. Always returns
+    204 + clears the cookie. JS handles the navigation."""
+    from datetime import timedelta
+
+    from app.api.auth import _clear_session_cookie, _is_jti_revoked
+    from app.audit import ActorRef, record
+    from app.models.revoked_token import RevokedToken
+
+    refresh_token: str | None = None
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            refresh_token = body.get("refresh_token")
+    except Exception:
+        refresh_token = None
+
+    user_id: str | None = None
+    if refresh_token:
+        try:
+            claims = decode_token(refresh_token)
+        except Exception:
+            claims = {}
+        if claims.get("typ") == "refresh":
+            jti = claims.get("jti")
+            user_id = claims.get("sub")
+            if jti and not _is_jti_revoked(db, jti):
+                exp = claims.get("exp")
+                expires_at = (
+                    datetime.fromtimestamp(int(exp), tz=UTC)
+                    if exp is not None
+                    else datetime.now(UTC) + timedelta(days=14)
+                )
+                db.add(RevokedToken(jti=jti, user_id=user_id, expires_at=expires_at))
+
+    if user_id:
+        ip = request.client.host if request.client else None
+        ua = request.headers.get("user-agent")
+        record(
+            db,
+            actor=ActorRef("user", user_id),
+            action="user.logout",
+            ip=ip,
+            user_agent=ua,
+        )
+    db.commit()
+
+    resp = Response(status_code=204)
+    _clear_session_cookie(resp, request)
     return resp
 
 
@@ -396,6 +447,7 @@ def _hydrate_ghost_rows(db: Session, ghosts: list[Ghost]) -> list[Any]:
         a = accounts.get(g.account_id)
         i = integrations.get(a.integration_id) if a else None
         m = matches.get(g.match_id) if g.match_id else None
+        connector_slug = i.connector if i else "?"
         rows.append(
             _Row(
                 id=g.id,
@@ -406,7 +458,9 @@ def _hydrate_ghost_rows(db: Session, ghosts: list[Ghost]) -> list[Any]:
                 last_seen_at=g.last_seen_at,
                 person=persons.get(g.person_id),
                 account=_AccountView(
-                    connector=i.connector if i else "?",
+                    connector=connector_slug,
+                    connector_label=_humanize(connector_slug) if i else "—",
+                    integration_name=(i.display_name if i else "—"),
                     external_id=a.external_id if a else "",
                     username=a.username if a else None,
                     email=a.email if a else None,
@@ -432,6 +486,8 @@ from dataclasses import dataclass  # noqa: E402
 @dataclass
 class _AccountView:
     connector: str
+    connector_label: str
+    integration_name: str
     external_id: str
     username: str | None
     email: str | None
@@ -476,7 +532,19 @@ def _connector_description(name: str) -> str:
     return _DESCRIPTIONS.get(name, "Read-only connector.")
 
 
+_CONNECTOR_LABELS = {
+    "bamboohr": "BambooHR",
+    "github": "GitHub",
+    "google_workspace": "Google Workspace",
+    "okta": "Okta",
+    "slack": "Slack",
+    "rippling": "Rippling",
+}
+
+
 def _humanize(name: str) -> str:
+    if name in _CONNECTOR_LABELS:
+        return _CONNECTOR_LABELS[name]
     return name.replace("_", " ").title().replace("Hris", "HRIS").replace("Github", "GitHub")
 
 

@@ -25,6 +25,14 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class LogoutRequest(BaseModel):
+    """The refresh token is revoked server-side; we accept it in the body
+    rather than relying on a cookie because we keep refresh tokens in JS
+    localStorage (the access cookie is HttpOnly)."""
+
+    refresh_token: str = Field(min_length=1)
+
+
 class UserOut(ORMModel):
     id: str
     workspace_id: str

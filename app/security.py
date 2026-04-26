@@ -49,6 +49,106 @@ def verify_password(password: str, hashed: str) -> bool:
         return False
 
 
+# --- Password strength ----------------------------------------------------
+#
+# We enforce strength on every new/changed password (CLI create-user,
+# password-change endpoint when added). We deliberately do NOT enforce on
+# the bootstrap admin / demo seed paths — those are operator-controlled
+# and breaking the 30-second time-to-value would hurt adoption more than
+# it would help security. Operators are loudly told to change the default
+# in the README, the install snippet, and the dashboard banner (TBD).
+
+PASSWORD_MIN_LENGTH = 12
+
+# Tiny, hand-curated blocklist of obvious passwords. Not a full RockYou
+# scrub — just enough that "password123" / "letmein" aren't accepted.
+_PASSWORD_BLOCKLIST = frozenset(
+    s.lower()
+    for s in (
+        "password",
+        "password1",
+        "password12",
+        "password123",
+        "password1234",
+        "passw0rd",
+        "p@ssword",
+        "p@ssw0rd",
+        "qwerty",
+        "qwerty123",
+        "qwertyuiop",
+        "letmein",
+        "letmein1",
+        "welcome",
+        "welcome1",
+        "welcome123",
+        "admin",
+        "admin123",
+        "administrator",
+        "root",
+        "root123",
+        "iloveyou",
+        "monkey",
+        "dragon",
+        "sunshine",
+        "trustno1",
+        "abc123",
+        "abcd1234",
+        "12345678",
+        "123456789",
+        "1234567890",
+        "11111111",
+        "00000000",
+        "changeme",
+        "changeme1",
+        "changeme12",
+        "changeme123",
+        "changeme1234",
+        "changeme!1",
+        "changeme!123",
+        "default",
+        "default1",
+        "sundown",
+        "sundown123",
+        "sundown1234",
+        "sundown2026",
+    )
+)
+
+
+class PasswordTooWeakError(ValueError):
+    """Raised when a candidate password fails the strength rules."""
+
+
+def validate_password_strength(password: str) -> None:
+    """Raise ``PasswordTooWeakError`` if ``password`` doesn't meet policy.
+
+    Policy: >= 12 chars, at least three of {lower, upper, digit, symbol},
+    not on the blocklist. Bcrypt's 72-byte limit is handled by ``_prep``
+    (we sha256 first), but we still cap at a sane upper bound to keep
+    pathological inputs out of the hasher.
+    """
+    if not isinstance(password, str):
+        raise PasswordTooWeakError("password must be a string")
+    if len(password) < PASSWORD_MIN_LENGTH:
+        raise PasswordTooWeakError(
+            f"password must be at least {PASSWORD_MIN_LENGTH} characters"
+        )
+    if len(password) > 1024:
+        raise PasswordTooWeakError("password is unreasonably long")
+    classes = (
+        any(c.islower() for c in password),
+        any(c.isupper() for c in password),
+        any(c.isdigit() for c in password),
+        any((not c.isalnum()) and not c.isspace() for c in password),
+    )
+    if sum(classes) < 3:
+        raise PasswordTooWeakError(
+            "password must include 3+ of: lowercase, uppercase, digit, symbol"
+        )
+    if password.lower() in _PASSWORD_BLOCKLIST:
+        raise PasswordTooWeakError("password is on the common-password blocklist")
+
+
 # --- JWT -------------------------------------------------------------------
 
 _JWT_ALG = "HS256"
@@ -87,6 +187,10 @@ def create_refresh_token(subject: str, *, workspace_id: str) -> str:
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(days=settings.refresh_ttl_days)).timestamp()),
         "typ": "refresh",
+        # ``jti`` lets us revoke a specific refresh token at logout without
+        # needing to invalidate every session for the user. Stored in the
+        # ``revoked_token`` table and checked on ``/auth/refresh``.
+        "jti": secrets.token_urlsafe(16),
     }
     return jwt.encode(payload, settings.secret_key, algorithm=_JWT_ALG)
 

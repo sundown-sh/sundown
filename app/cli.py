@@ -8,6 +8,7 @@ Commands:
   * ``seed``        — load demo data (calls scripts/seed.py)
   * ``verify-audit``— check the audit chain
   * ``create-user`` — add a local user
+  * ``unlock-user`` — clear auth lockout after too many failed logins
 
 Designed so ``docker run sundown serve`` works with no extra args.
 """
@@ -87,11 +88,17 @@ def _create_user(args: argparse.Namespace) -> int:
     from app.config import get_settings
     from app.db import session_scope
     from app.models.user import User
-    from app.security import hash_password
+    from app.security import (
+        PasswordTooWeakError,
+        hash_password,
+        validate_password_strength,
+    )
 
     pw = args.password or getpass("Password: ")
-    if len(pw) < 8:
-        print("error: password must be >= 8 characters", file=sys.stderr)
+    try:
+        validate_password_strength(pw)
+    except PasswordTooWeakError as e:
+        print(f"error: {e}", file=sys.stderr)
         return 2
     settings = get_settings()
     with session_scope() as db:
@@ -104,6 +111,31 @@ def _create_user(args: argparse.Namespace) -> int:
         )
         db.add(u)
     print(f"ok: created {args.role} user {args.email}")
+    return 0
+
+
+def _unlock_user(args: argparse.Namespace) -> int:
+    from sqlalchemy import func, select
+
+    from app.config import get_settings
+    from app.db import session_scope
+    from app.models.user import User
+
+    settings = get_settings()
+    email_norm = args.email.strip().lower()
+    with session_scope() as db:
+        u = db.scalar(
+            select(User).where(
+                func.lower(User.email) == email_norm,
+                User.workspace_id == settings.default_workspace,
+            )
+        )
+        if u is None:
+            print(f"error: no user {args.email!r} in workspace", file=sys.stderr)
+            return 2
+        u.failed_login_count = 0
+        u.locked_until = None
+    print(f"ok: cleared lockout for {args.email}")
     return 0
 
 
@@ -136,6 +168,13 @@ def main(argv: list[str] | None = None) -> int:
     p_user.add_argument("--role", default="admin", choices=["viewer", "analyst", "admin"])
     p_user.add_argument("--password", default=os.environ.get("SUNDOWN_USER_PASSWORD"))
     p_user.set_defaults(fn=_create_user)
+
+    p_unlock = sub.add_parser(
+        "unlock-user",
+        help="reset failed-login lockout (after too many bad passwords)",
+    )
+    p_unlock.add_argument("--email", required=True)
+    p_unlock.set_defaults(fn=_unlock_user)
 
     args = parser.parse_args(argv)
     return int(args.fn(args))

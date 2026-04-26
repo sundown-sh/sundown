@@ -5,12 +5,13 @@
     <div class="text-xs text-slate-500">{{ g.person.work_email }}</div>
   </td>
   <td class="px-4 py-2">
-    <span class="font-medium">{{ g.account.connector }}</span>
+    <span class="font-medium">{{ g.account.connector_label }}</span>
+    <div class="text-xs text-slate-500">{{ g.account.integration_name }}</div>
   </td>
   <td class="px-4 py-2 text-slate-600">
     {{ g.account.username or g.account.email or g.account.external_id }}
   </td>
-  <td class="px-4 py-2">{{ g.days_since_termination }}</td>
+  <td class="px-4 py-2 tabular-nums">{{ g.days_since_termination }}</td>
   <td class="px-4 py-2">
     <span class="text-xs font-mono">{{ g.match.rule }}</span>
     <span class="text-xs text-slate-400">({{ g.match.confidence }})</span>

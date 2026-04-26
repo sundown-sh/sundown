@@ -24,7 +24,7 @@ from app.models import register_all_models
 
 @pytest.fixture(autouse=True)
 def _isolate_db(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Generator[None, None, None]:
-    """Fresh SQLite per test."""
+    """Fresh SQLite per test, plus a clean login-throttle bucket."""
     db_file = tmp_path / "test.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_file}")
     config.reset_settings_cache()
@@ -33,6 +33,13 @@ def _isolate_db(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Generator[No
     register_all_models()
     db_mod.Base.metadata.create_all(db_mod.get_engine())
     load_builtin_connectors()
+
+    # The login throttles are process-wide singletons; reset each test
+    # so a slow burst from one test doesn't bleed into the next.
+    from app.security_throttle import LOGIN_ACCOUNT_THROTTLE, LOGIN_IP_THROTTLE
+
+    LOGIN_IP_THROTTLE._buckets.clear()
+    LOGIN_ACCOUNT_THROTTLE._buckets.clear()
 
     yield
 
