@@ -15,30 +15,67 @@
       <input name="password" type="password" required autocomplete="current-password"
              class="mt-1 w-full rounded-md border-slate-300 shadow-sm focus:border-amber-500 focus:ring-amber-500" />
     </label>
-    <button class="w-full rounded-md bg-slate-900 text-white py-2 font-medium hover:bg-slate-800">Sign in</button>
-    <p id="login-err" class="text-sm text-rose-600 hidden"></p>
+    <button type="submit" id="login-submit" class="w-full rounded-md bg-slate-900 text-white py-2 font-medium hover:bg-slate-800 disabled:opacity-60">Sign in</button>
+    <p id="login-err" class="text-sm text-rose-600 hidden" role="alert"></p>
   </form>
 </div>
 <script>
-  document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const r = await fetch('/api/v1/auth/login', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({email: fd.get('email'), password: fd.get('password')}),
-    });
-    if (!r.ok) {
-      const err = document.getElementById('login-err');
-      err.textContent = (await r.json()).detail || 'Sign-in failed.';
-      err.classList.remove('hidden');
-      return;
+  (function () {
+    const form = document.getElementById('login-form');
+    const errEl = document.getElementById('login-err');
+    const submitBtn = document.getElementById('login-submit');
+
+    function showErr(msg) {
+      errEl.textContent = msg;
+      errEl.classList.remove('hidden');
     }
-    const body = await r.json();
-    localStorage.setItem('sundown_token', body.access_token);
-    localStorage.setItem('sundown_refresh', body.refresh_token);
-    document.cookie = 'sundown_token=' + body.access_token + '; path=/; SameSite=Lax';
-    window.location = '/';
-  });
+
+    function detailFromJson(data) {
+      const d = data && data.detail;
+      if (typeof d === 'string') return d;
+      if (Array.isArray(d))
+        return d.map(function (x) { return (x && (x.msg || x.message)) || JSON.stringify(x); }).join(' ');
+      if (d != null) return String(d);
+      return 'Sign-in failed.';
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      errEl.classList.add('hidden');
+      submitBtn.disabled = true;
+      try {
+        const fd = new FormData(form);
+        const email = fd.get('email');
+        const password = fd.get('password');
+        const r = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ email: email, password: password }),
+        });
+        let data = null;
+        try {
+          data = await r.json();
+        } catch (_) {
+          /* HTML error page, empty body, etc. */
+        }
+        if (!r.ok) {
+          showErr(data ? detailFromJson(data) : ('HTTP ' + r.status + ' — could not read error from server.'));
+          return;
+        }
+        if (!data || !data.access_token) {
+          showErr('Server returned an unexpected response (no token).');
+          return;
+        }
+        localStorage.setItem('sundown_token', data.access_token);
+        localStorage.setItem('sundown_refresh', data.refresh_token || '');
+        window.location = '/';
+      } catch (ex) {
+        showErr(ex && ex.message ? ex.message : 'Network error — is the Sundown server running on this host?');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  })();
 </script>
 {% endblock %}

@@ -26,8 +26,12 @@
         <option value="medium">medium</option>
       </select>
     </label>
-    <button class="px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-medium">Generate</button>
+    <button type="submit" class="px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-medium">Generate</button>
   </form>
+  <p class="text-xs text-slate-500 mt-2 max-w-xl">
+    <strong>PDF</strong> uses WeasyPrint when installed (Docker/Linux/macOS).
+    On Windows choose <strong>HTML (printable)</strong> or generate PDF — if the engine is missing you get an HTML file instead; open it and use <em>Print → Save as PDF</em>.
+  </p>
 </section>
 
 <section class="bg-white border border-slate-200 rounded-lg overflow-hidden">

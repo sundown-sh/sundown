@@ -17,7 +17,7 @@
       <div><dt class="text-xs uppercase text-slate-500">Employee ID</dt><dd>{{ g.person.external_id }}</dd></div>
       <div><dt class="text-xs uppercase text-slate-500">Status</dt><dd>{{ g.person.status }}</dd></div>
       <div><dt class="text-xs uppercase text-slate-500">Termination date</dt><dd>{{ g.person.termination_date }}</dd></div>
-      <div><dt class="text-xs uppercase text-slate-500">Days since</dt><dd>{{ g.days_since_termination }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500" title="Days since the employee was marked terminated in HRIS">Days since term.</dt><dd class="tabular-nums">{{ g.days_since_termination }}</dd></div>
       {% if g.person.secondary_emails %}
         <div><dt class="text-xs uppercase text-slate-500">Aliases</dt>
           <dd>{% for e in g.person.secondary_emails %}<div class="font-mono text-xs">{{ e }}</div>{% endfor %}</dd>
@@ -29,7 +29,7 @@
   <section class="bg-white border border-slate-200 rounded-lg p-4">
     <h2 class="font-medium text-slate-700 mb-3">Account</h2>
     <dl class="text-sm space-y-2">
-      <div><dt class="text-xs uppercase text-slate-500">Destination</dt><dd>{{ g.account.connector }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Destination</dt><dd>{{ g.account.connector_label }}<div class="text-xs text-slate-500">{{ g.account.integration_name }}</div></dd></div>
       <div><dt class="text-xs uppercase text-slate-500">Username</dt><dd>{{ g.account.username or '—' }}</dd></div>
       <div><dt class="text-xs uppercase text-slate-500">Email</dt><dd>{{ g.account.email or '—' }}</dd></div>
       <div><dt class="text-xs uppercase text-slate-500">External ID</dt><dd class="font-mono text-xs">{{ g.account.external_id }}</dd></div>

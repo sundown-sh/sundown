@@ -82,6 +82,63 @@ def test_generate_csv_report_end_to_end(app_and_token: tuple[TestClient, str]) -
     assert "person_email" in r2.text or "work_email" in r2.text
 
 
+def test_report_download_works_with_session_cookie_only(
+    app_and_token: tuple[TestClient, str],
+) -> None:
+    """Clicking "download" is a plain GET — the browser sends the HttpOnly
+    cookie but not ``Authorization``. ``get_principal`` must accept the cookie."""
+    client, token = app_and_token
+    client.cookies.set("sundown_token", token)
+
+    r = client.post(
+        "/api/v1/reports",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"kind": "csv"},
+    )
+    assert r.status_code in (200, 201)
+    rep_id = r.json()["id"]
+
+    r2 = client.get(f"/api/v1/reports/{rep_id}/download")
+    assert r2.status_code == 200
+    assert "person_email" in r2.text or "work_email" in r2.text
+
+
+@pytest.mark.parametrize("kind", ["json", "csv", "html", "pdf"])
+def test_every_report_kind_renders(
+    app_and_token: tuple[TestClient, str], kind: str
+) -> None:
+    """Regression: HTML/PDF rendering once silently failed because the
+    embedded CSS contained literal ``{`` ``}`` and the template was
+    formatted with ``str.format``. We now exercise every format.
+    """
+    client, token = app_and_token
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r = client.post(
+        "/api/v1/reports",
+        headers=headers,
+        json={"kind": kind, "scope": {"severity": "critical"}},
+    )
+    assert r.status_code in (200, 201), f"{kind}: {r.status_code} {r.text}"
+    rep = r.json()
+    if kind == "pdf":
+        # Linux/macOS CI often has WeasyPrint → real PDF. Windows (and
+        # bare images without Cairo) fall back to printable HTML.
+        assert rep["kind"] in ("pdf", "html"), rep
+    else:
+        assert rep["kind"] == kind
+    assert rep["sha256"], f"{kind} report has no sha256"
+
+    r2 = client.get(f"/api/v1/reports/{rep['id']}/download", headers=headers)
+    assert r2.status_code == 200
+    assert len(r2.content) > 64, f"{kind} download empty"
+    if rep["kind"] == "pdf":
+        assert r2.content.startswith(b"%PDF"), "expected PDF magic bytes"
+    elif rep["kind"] == "html":
+        head = r2.content[:200].lower()
+        assert b"<!doctype html" in head or b"<html" in head
+
+
 def test_audit_log_chain_is_intact(app_and_token: tuple[TestClient, str]) -> None:
     client, token = app_and_token
     headers = {"Authorization": f"Bearer {token}"}

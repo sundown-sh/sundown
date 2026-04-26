@@ -12,6 +12,7 @@ def register_all_models() -> None:
         integration,
         match,
         report,
+        revoked_token,
         user,
     )
 

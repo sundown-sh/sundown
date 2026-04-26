@@ -66,17 +66,27 @@ class ReportData:
         return out
 
 
+def _as_list(v: Any) -> list[str]:
+    """Accept either a single value or a list/tuple. The UI sends a single
+    severity string (``"critical"``); the API allows a list. Both should work."""
+    if v is None:
+        return []
+    if isinstance(v, (list, tuple, set)):
+        return [str(x) for x in v]
+    return [str(v)]
+
+
 def collect_report_data(
     db: Session, *, workspace_id: str, scope: dict[str, Any] | None = None
 ) -> ReportData:
     scope = scope or {}
     stmt = select(Ghost).where(Ghost.workspace_id == workspace_id)
 
-    severity_filter = scope.get("severity")
+    severity_filter = _as_list(scope.get("severity"))
     if severity_filter:
         stmt = stmt.where(Ghost.severity.in_(severity_filter))
 
-    state_filter = scope.get("state")
+    state_filter = _as_list(scope.get("state"))
     if state_filter:
         stmt = stmt.where(Ghost.state.in_(state_filter))
     elif not scope.get("include_suppressed"):

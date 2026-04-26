@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -11,6 +11,13 @@ from app.models._mixins import IdMixin, TimestampMixin, WorkspaceMixin
 
 ROLES = ("viewer", "analyst", "admin")
 ROLE_ORDER = {r: i for i, r in enumerate(ROLES)}
+
+# After this many consecutive failed logins, the account is locked for
+# ``LOCKOUT_DURATION_SECONDS``. Both are constants rather than env vars
+# because they're security-sensitive defaults; if an operator wants to
+# tune them, they own the consequences and can edit the code.
+LOCKOUT_THRESHOLD = 5
+LOCKOUT_DURATION_SECONDS = 15 * 60
 
 
 def role_at_least(actual: str, minimum: str) -> bool:
@@ -26,6 +33,17 @@ class User(WorkspaceMixin, IdMixin, TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(16), nullable=False, default="analyst")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # --- Account lockout (auth hardening) ---
+    # Reset on successful login. When ``failed_login_count`` reaches
+    # ``LOCKOUT_THRESHOLD`` we set ``locked_until = now + 15min``. The
+    # login endpoint refuses requests while ``locked_until`` is in the
+    # future and emits a ``user.lockout.triggered`` audit event when it
+    # transitions.
+    failed_login_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ApiKey(WorkspaceMixin, IdMixin, TimestampMixin, Base):

@@ -38,7 +38,7 @@
           <th class="text-left py-2">Sev</th>
           <th class="text-left py-2">Person</th>
           <th class="text-left py-2">Destination</th>
-          <th class="text-left py-2">Days</th>
+          <th class="text-left py-2" title="Days since the employee was marked terminated in HRIS">Days since term.</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
@@ -50,10 +50,9 @@
             <div class="text-xs text-slate-500">{{ g.person.work_email }}</div>
           </td>
           <td class="py-2">
-            <span class="font-medium">{{ g.connector }}</span>
-            <span class="text-xs text-slate-500">{{ g.account.username or g.account.email }}</span>
+            <span class="font-medium">{{ g.account.connector_label }}</span>
           </td>
-          <td class="py-2">{{ g.days_since_termination }}</td>
+          <td class="py-2 tabular-nums">{{ g.days_since_termination }}</td>
         </tr>
         {% endfor %}
       </tbody>

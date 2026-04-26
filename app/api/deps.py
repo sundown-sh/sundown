@@ -1,10 +1,13 @@
 """FastAPI dependencies: DB session, current user/principal, role gating.
 
-Two auth methods are accepted on every protected endpoint:
+Auth accepted on every protected endpoint (checked in this order):
 
-  * ``Authorization: Bearer <jwt>``      — human users
-  * ``Authorization: Bearer sdn_...``    — service callers (API key)
-  * ``X-API-Key: sdn_...``               — alternate API-key header
+  * ``X-API-Key: sdn_...``
+  * ``Authorization: Bearer <jwt>`` or ``Authorization: Bearer sdn_...``
+  * ``Cookie: sundown_token=...`` — HttpOnly session cookie set by
+    ``POST /api/v1/auth/login``. Needed for browser navigations (e.g.
+    ``<a href="/api/v1/reports/{id}/download">``) that cannot attach a
+    Bearer header.
 
 All write endpoints require role >= ``analyst``.
 """
@@ -22,6 +25,9 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models.user import ApiKey, User, role_at_least
 from app.security import API_KEY_PREFIX, decode_token, verify_api_key
+
+# Must match ``COOKIE_NAME`` in ``app.api.auth``.
+_SESSION_COOKIE_NAME = "sundown_token"
 
 
 @dataclass(frozen=True)
@@ -79,8 +85,9 @@ def get_principal(
 ) -> Principal:
     """Resolve the caller into a Principal or 401."""
 
-    # Order: explicit X-API-Key, then bearer (could be JWT or API key).
-    raw = x_api_key or _bearer(authorization)
+    # Order: explicit X-API-Key, then bearer (could be JWT or API key),
+    # then same-origin session cookie (browser file downloads).
+    raw = x_api_key or _bearer(authorization) or request.cookies.get(_SESSION_COOKIE_NAME)
     if not raw:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
