@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Sign in · Sundown{% endblock %}
+{% block body %}
+<div class="max-w-md mx-auto bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+  <h1 class="text-xl font-semibold mb-1">Sign in to Sundown</h1>
+  <p class="text-sm text-slate-500 mb-6">Local users only. SSO is in the hosted version.</p>
+  <form id="login-form" class="space-y-4">
+    <label class="block">
+      <span class="text-sm text-slate-700">Email</span>
+      <input name="email" type="email" required autocomplete="username"
+             class="mt-1 w-full rounded-md border-slate-300 shadow-sm focus:border-amber-500 focus:ring-amber-500" />
+    </label>
+    <label class="block">
+      <span class="text-sm text-slate-700">Password</span>
+      <input name="password" type="password" required autocomplete="current-password"
+             class="mt-1 w-full rounded-md border-slate-300 shadow-sm focus:border-amber-500 focus:ring-amber-500" />
+    </label>
+    <button class="w-full rounded-md bg-slate-900 text-white py-2 font-medium hover:bg-slate-800">Sign in</button>
+    <p id="login-err" class="text-sm text-rose-600 hidden"></p>
+  </form>
+</div>
+<script>
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const r = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email: fd.get('email'), password: fd.get('password')}),
+    });
+    if (!r.ok) {
+      const err = document.getElementById('login-err');
+      err.textContent = (await r.json()).detail || 'Sign-in failed.';
+      err.classList.remove('hidden');
+      return;
+    }
+    const body = await r.json();
+    localStorage.setItem('sundown_token', body.access_token);
+    localStorage.setItem('sundown_refresh', body.refresh_token);
+    document.cookie = 'sundown_token=' + body.access_token + '; path=/; SameSite=Lax';
+    window.location = '/';
+  });
+</script>
+{% endblock %}

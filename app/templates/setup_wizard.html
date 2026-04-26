@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Welcome to Sundown{% endblock %}
+{% block body %}
+<div class="max-w-2xl mx-auto bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+  <div class="text-amber-500 text-3xl mb-2">🌇</div>
+  <h1 class="text-2xl font-semibold mb-2">Welcome to Sundown</h1>
+  <p class="text-slate-600 mb-6">
+    You're three steps from your first ghost. Sundown is read-only — connecting
+    a system grants <em>view-only</em> scopes, never write.
+  </p>
+
+  <ol class="space-y-4 list-decimal list-inside text-slate-700">
+    <li>
+      <span class="font-medium">Connect your HRIS</span> — the source of truth for terminations.
+      <div class="text-xs text-slate-500 ml-5">BambooHR or Rippling supported in v1.</div>
+    </li>
+    <li>
+      <span class="font-medium">Connect one destination</span> — Okta, Google Workspace, GitHub, or Slack.
+      <div class="text-xs text-slate-500 ml-5">Add more later.</div>
+    </li>
+    <li>
+      <span class="font-medium">Click <em>Run scan</em></span> — Sundown matches HRIS terminations against active accounts and shows you the ghosts.
+    </li>
+  </ol>
+
+  <div class="mt-8 flex gap-3">
+    <a href="/integrations" class="px-4 py-2 rounded-md bg-amber-500 text-white font-medium hover:bg-amber-600">Set up integrations →</a>
+    <a href="/ghosts" class="px-4 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50">Skip for now</a>
+  </div>
+</div>
+{% endblock %}

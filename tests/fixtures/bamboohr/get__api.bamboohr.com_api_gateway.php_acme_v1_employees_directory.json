@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "https://api.bamboohr.com/api/gateway.php/acme/v1/employees/directory"
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {
+      "fields": [],
+      "employees": [
+        {"id": "101", "displayName": "Alice Active",  "workEmail": "alice@acme.com"},
+        {"id": "104", "displayName": "Dave Designer", "workEmail": "dave@acme.com"}
+      ]
+    }
+  }
+}

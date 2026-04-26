@@ -1,0 +1,103 @@
+[project]
+name = "sundown"
+version = "0.1.0"
+description = "Detect ghost accounts left behind after employee termination. Read-only by design."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+authors = [{ name = "The Sundown Authors" }]
+keywords = ["security", "iam", "audit", "soc2", "iso27001", "offboarding", "ghost-accounts"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Security",
+]
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14",
+    "pydantic[email]>=2.9",
+    "pydantic-settings>=2.6",
+    "httpx>=0.28",
+    "structlog>=24.4",
+    "apscheduler>=3.10",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.20",
+    "bcrypt>=4.2",
+    "prometheus-client>=0.21",
+    "tenacity>=9.0",
+    "rapidfuzz>=3.10",
+    "PyJWT>=2.10",
+    "cryptography>=43.0",
+    "weasyprint>=63.0; sys_platform != 'win32'",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2"]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "respx>=0.21",
+]
+
+[project.scripts]
+sundown = "app.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF"]
+ignore = [
+    "B008",   # default in dependency expression (FastAPI idiom)
+    "N818",   # exception names need not end in Error
+    "E501",   # line length — many strings have intentional long lines
+    "RUF001", # ambiguous unicode in strings (— and – used in user-facing copy)
+    "RUF002", # ambiguous unicode in docstrings
+    "RUF003", # ambiguous unicode in comments
+    "RUF012", # mutable defaults on connector class attributes (intentional)
+    "UP042",  # str+Enum vs StrEnum (StrEnum semantics differ)
+    "SIM108", # ternary preference is opinionated
+    "SIM102", # nested-if preference is opinionated
+    "N812",   # __version__ alias casing
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011", "B017", "N802", "RUF003"]
+"alembic/**" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict_optional = true
+ignore_missing_imports = true
+disallow_untyped_defs = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["weasyprint.*", "apscheduler.*"]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
+markers = [
+    "slow: slower integration-style tests",
+]

@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "https://api.github.com/orgs/acme"
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {"login": "acme", "id": 12345, "type": "Organization"}
+  }
+}

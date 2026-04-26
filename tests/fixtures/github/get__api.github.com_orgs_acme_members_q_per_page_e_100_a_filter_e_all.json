@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "https://api.github.com/orgs/acme/members?per_page=100&filter=all"
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {"content-type": "application/json"},
+    "json": [
+      {"login": "alice", "id": 1001, "node_id": "MDQ6VXNlcjEwMDE="},
+      {"login": "bob",   "id": 2001, "node_id": "MDQ6VXNlcjIwMDE="}
+    ]
+  }
+}

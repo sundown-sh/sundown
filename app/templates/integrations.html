@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Integrations · Sundown{% endblock %}
+{% block body %}
+<div class="flex items-baseline justify-between mb-6">
+  <h1 class="text-2xl font-semibold">Integrations</h1>
+  <button class="text-sm px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-medium"
+          onclick="document.getElementById('add-integration').showModal()">
+    + Add integration
+  </button>
+</div>
+
+<section class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+  {% if integrations %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+      <tr>
+        <th class="text-left px-4 py-2">Connector</th>
+        <th class="text-left px-4 py-2">Display name</th>
+        <th class="text-left px-4 py-2">Kind</th>
+        <th class="text-left px-4 py-2">Health</th>
+        <th class="text-left px-4 py-2">Last sync</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+    {% for i in integrations %}
+      <tr>
+        <td class="px-4 py-2 font-mono text-xs">{{ i.connector }}</td>
+        <td class="px-4 py-2 font-medium">{{ i.display_name }}</td>
+        <td class="px-4 py-2 text-slate-500">{{ i.kind }}</td>
+        <td class="px-4 py-2">
+          {% if i.last_sync_status == 'success' %}
+            <span class="text-emerald-700">healthy</span>
+          {% elif i.last_sync_status == 'error' %}
+            <span class="text-rose-700">error</span>
+          {% else %}
+            <span class="text-slate-500">pending</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-2 text-slate-600 text-xs">{{ i.last_sync_at or 'never' }}</td>
+        <td class="px-4 py-2 text-right space-x-1">
+          <button class="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50"
+                  hx-post="/api/v1/integrations/{{ i.id }}/healthcheck"
+                  hx-swap="none"
+                  hx-on::after-request="window.location.reload()">Check</button>
+          <button class="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50"
+                  hx-post="/api/v1/integrations/{{ i.id }}/sync"
+                  hx-swap="none"
+                  hx-on::after-request="window.location.reload()">Sync</button>
+          <button class="text-xs px-2 py-1 border border-rose-200 text-rose-700 rounded hover:bg-rose-50"
+                  hx-delete="/api/v1/integrations/{{ i.id }}"
+                  hx-swap="none"
+                  hx-confirm="Remove this integration?"
+                  hx-on::after-request="window.location.reload()">Remove</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="p-12 text-center text-slate-500">
+      <div class="text-3xl mb-2">🔌</div>
+      No integrations configured yet. Add one above to start finding ghosts.
+    </div>
+  {% endif %}
+</section>
+
+<section class="mt-8">
+  <h2 class="text-lg font-medium mb-3">Available connectors</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+    {% for c in catalog %}
+      <div class="bg-white border border-slate-200 rounded-lg p-4 flex flex-col">
+        <div class="flex items-center justify-between">
+          <span class="font-medium">{{ c.display_name }}</span>
+          <span class="text-xs uppercase tracking-wider text-slate-400">{{ c.kind }}</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-2 flex-1">{{ c.description }}</p>
+        <div class="mt-3 flex items-center justify-between">
+          <span class="text-xs text-slate-500">{{ c.tier }}</span>
+          <button class="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50"
+                  onclick="addIntegration('{{ c.connector }}', '{{ c.display_name }}', '{{ c.kind }}', '{{ c.config_schema_url or '' }}')">
+            Connect
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<dialog id="add-integration" class="rounded-lg shadow-xl p-0 w-full max-w-lg backdrop:bg-slate-900/40">
+  <form method="dialog" class="bg-white">
+    <div class="p-5 border-b border-slate-200">
+      <h2 class="text-lg font-semibold">Add integration</h2>
+      <p class="text-xs text-slate-500 mt-1">Sundown only requests <strong>read-only</strong> scopes.</p>
+    </div>
+    <div class="p-5 space-y-3 text-sm">
+      <label class="block">
+        <span class="text-xs uppercase tracking-wider text-slate-500">Connector</span>
+        <select id="add-connector" class="mt-1 block w-full rounded-md border-slate-300">
+          {% for c in catalog %}
+            <option value="{{ c.connector }}" data-kind="{{ c.kind }}" data-name="{{ c.display_name }}">{{ c.display_name }} ({{ c.kind }})</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="block">
+        <span class="text-xs uppercase tracking-wider text-slate-500">Display name</span>
+        <input id="add-name" class="mt-1 block w-full rounded-md border-slate-300" />
+      </label>
+      <label class="block">
+        <span class="text-xs uppercase tracking-wider text-slate-500">Config (JSON)</span>
+        <textarea id="add-config" rows="6" class="mt-1 block w-full rounded-md border-slate-300 font-mono text-xs">{}</textarea>
+        <span class="text-xs text-slate-400">e.g. <code>{"api_key": "...", "subdomain": "..."}</code></span>
+      </label>
+      <p id="add-err" class="text-sm text-rose-600 hidden"></p>
+    </div>
+    <div class="p-5 border-t border-slate-200 flex gap-2 justify-end">
+      <button value="cancel" class="px-3 py-1.5 rounded border border-slate-300">Cancel</button>
+      <button type="button" onclick="submitIntegration()" class="px-3 py-1.5 rounded bg-slate-900 text-white">Save</button>
+    </div>
+  </form>
+</dialog>
+<script>
+  function addIntegration(connector, name, kind) {
+    const dlg = document.getElementById('add-integration');
+    document.getElementById('add-connector').value = connector;
+    document.getElementById('add-name').value = name;
+    dlg.showModal();
+  }
+  async function submitIntegration() {
+    const sel = document.getElementById('add-connector');
+    const opt = sel.options[sel.selectedIndex];
+    const errEl = document.getElementById('add-err');
+    errEl.classList.add('hidden');
+    let config = {};
+    try { config = JSON.parse(document.getElementById('add-config').value || '{}'); }
+    catch (e) { errEl.textContent = 'Config must be valid JSON.'; errEl.classList.remove('hidden'); return; }
+    const tok = localStorage.getItem('sundown_token');
+    const r = await fetch('/api/v1/integrations', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok},
+      body: JSON.stringify({
+        connector: sel.value,
+        display_name: document.getElementById('add-name').value,
+        kind: opt.dataset.kind,
+        config: config,
+        enabled: true,
+      }),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      errEl.textContent = j.detail || 'Could not save integration.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    window.location.reload();
+  }
+</script>
+{% endblock %}

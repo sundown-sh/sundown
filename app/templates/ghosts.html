@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Ghosts · Sundown{% endblock %}
+{% block body %}
+<div class="flex items-baseline justify-between mb-6">
+  <h1 class="text-2xl font-semibold">Ghost accounts <span class="text-slate-400 font-normal text-base">({{ total }})</span></h1>
+  <button hx-post="/api/v1/ghosts/rescan" hx-swap="none"
+          hx-on::after-request="window.location.reload()"
+          class="text-sm px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-medium">
+    Re-run matching
+  </button>
+</div>
+
+<form method="get" class="bg-white border border-slate-200 rounded-lg p-3 mb-4 flex flex-wrap gap-3 items-end text-sm">
+  <label class="block">
+    <span class="text-xs uppercase tracking-wider text-slate-500">Severity</span>
+    <select name="severity" class="block mt-1 rounded-md border-slate-300 shadow-sm">
+      <option value="">all</option>
+      {% for s in ['critical','high','medium'] %}
+        <option value="{{ s }}" {% if filters.severity == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="block">
+    <span class="text-xs uppercase tracking-wider text-slate-500">State</span>
+    <select name="state" class="block mt-1 rounded-md border-slate-300 shadow-sm">
+      {% for s in ['open','acknowledged','suppressed','false_positive','resolved'] %}
+        <option value="{{ s }}" {% if filters.state == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+      <option value="">any</option>
+    </select>
+  </label>
+  <label class="block">
+    <span class="text-xs uppercase tracking-wider text-slate-500">Min days</span>
+    <input name="min_days" type="number" min="0" value="{{ filters.min_days or '' }}"
+           class="block mt-1 w-24 rounded-md border-slate-300 shadow-sm" />
+  </label>
+  <label class="block">
+    <span class="text-xs uppercase tracking-wider text-slate-500">Destination</span>
+    <select name="integration_id" class="block mt-1 rounded-md border-slate-300 shadow-sm">
+      <option value="">all</option>
+      {% for i in integrations %}
+        <option value="{{ i.id }}" {% if filters.integration_id == i.id %}selected{% endif %}>{{ i.display_name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button class="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50">Filter</button>
+  <a href="/ghosts" class="text-xs text-slate-500 hover:underline">reset</a>
+</form>
+
+{% if items %}
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+      <tr>
+        <th class="text-left px-4 py-2">Sev</th>
+        <th class="text-left px-4 py-2">Person</th>
+        <th class="text-left px-4 py-2">Destination</th>
+        <th class="text-left px-4 py-2">Account</th>
+        <th class="text-left px-4 py-2">Days</th>
+        <th class="text-left px-4 py-2">Rule</th>
+        <th class="text-left px-4 py-2">State</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100" id="ghost-rows">
+      {% for g in items %}
+        {% include "_ghost_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-4 flex items-center justify-between text-sm">
+  <span class="text-slate-500">Showing {{ items|length }} of {{ total }}</span>
+  <div class="flex gap-2">
+    {% if filters.offset > 0 %}
+      <a class="px-3 py-1 border border-slate-300 rounded-md hover:bg-slate-50"
+         href="?{{ querystring(offset=filters.offset - filters.limit) }}">← Previous</a>
+    {% endif %}
+    {% if filters.offset + items|length < total %}
+      <a class="px-3 py-1 border border-slate-300 rounded-md hover:bg-slate-50"
+         href="?{{ querystring(offset=filters.offset + filters.limit) }}">Next →</a>
+    {% endif %}
+  </div>
+</div>
+
+{% else %}
+<div class="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">
+  <div class="text-4xl mb-2">🌅</div>
+  <p>No ghosts match these filters.</p>
+  <p class="text-xs mt-2">If you just connected an integration, try <em>Re-run matching</em>.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Settings · Sundown{% endblock %}
+{% block body %}
+<h1 class="text-2xl font-semibold mb-6">Settings</h1>
+
+<section class="bg-white border border-slate-200 rounded-lg p-4 mb-6">
+  <h2 class="font-medium mb-3">Workspace</h2>
+  <dl class="text-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div><dt class="text-xs uppercase text-slate-500">Workspace ID</dt><dd class="font-mono text-xs">{{ settings.default_workspace }}</dd></div>
+    <div><dt class="text-xs uppercase text-slate-500">Database</dt><dd class="font-mono text-xs">{{ settings.database_url.split('@')[-1] }}</dd></div>
+    <div><dt class="text-xs uppercase text-slate-500">Scan interval</dt><dd>every {{ settings.scan_interval_minutes }} minutes</dd></div>
+    <div><dt class="text-xs uppercase text-slate-500">Daily digest</dt><dd>{{ settings.digest_hour_utc }}:00 UTC</dd></div>
+  </dl>
+</section>
+
+<section class="bg-white border border-slate-200 rounded-lg p-4 mb-6">
+  <div class="flex items-baseline justify-between">
+    <h2 class="font-medium">API keys</h2>
+    <button class="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50"
+            onclick="document.getElementById('new-key').showModal()">+ New API key</button>
+  </div>
+  {% if api_keys %}
+    <table class="w-full text-sm mt-3">
+      <thead class="text-xs uppercase tracking-wider text-slate-500">
+        <tr>
+          <th class="text-left py-2">Name</th>
+          <th class="text-left py-2">Prefix</th>
+          <th class="text-left py-2">Role</th>
+          <th class="text-left py-2">Created</th>
+          <th class="text-left py-2">Last used</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+      {% for k in api_keys %}
+        <tr>
+          <td class="py-2">{{ k.name }}</td>
+          <td class="py-2 font-mono text-xs">{{ k.prefix }}…</td>
+          <td class="py-2">{{ k.role }}</td>
+          <td class="py-2 text-xs text-slate-500">{{ k.created_at }}</td>
+          <td class="py-2 text-xs text-slate-500">{{ k.last_used_at or 'never' }}</td>
+          <td class="py-2 text-right">
+            <button class="text-xs text-rose-700 hover:underline"
+                    hx-delete="/api/v1/auth/api-keys/{{ k.id }}"
+                    hx-swap="none"
+                    hx-confirm="Revoke this API key?"
+                    hx-on::after-request="window.location.reload()">revoke</button>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-sm text-slate-500 mt-3">No API keys yet.</p>
+  {% endif %}
+</section>
+
+<section class="bg-white border border-slate-200 rounded-lg p-4">
+  <h2 class="font-medium mb-3">Notifications</h2>
+  <dl class="text-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div><dt class="text-xs uppercase text-slate-500">Slack webhook</dt>
+      <dd>{% if settings.slack_webhook_url %}<span class="text-emerald-700">configured</span>{% else %}<span class="text-slate-500">not set</span>{% endif %}</dd>
+    </div>
+    <div><dt class="text-xs uppercase text-slate-500">Outbound webhook</dt>
+      <dd>{% if settings.outbound_webhook_url %}<span class="text-emerald-700">configured</span>{% else %}<span class="text-slate-500">not set</span>{% endif %}</dd>
+    </div>
+  </dl>
+  <p class="text-xs text-slate-500 mt-3">
+    Set <code>SUNDOWN_SLACK_WEBHOOK_URL</code>, <code>SUNDOWN_OUTBOUND_WEBHOOK_URL</code>,
+    and <code>SUNDOWN_OUTBOUND_WEBHOOK_SECRET</code> in your environment to enable.
+  </p>
+</section>
+
+<dialog id="new-key" class="rounded-lg shadow-xl p-0 w-full max-w-md backdrop:bg-slate-900/40">
+  <div class="bg-white">
+    <div class="p-5 border-b border-slate-200">
+      <h2 class="text-lg font-semibold">New API key</h2>
+    </div>
+    <div class="p-5 space-y-3 text-sm">
+      <label class="block">
+        <span class="text-xs uppercase text-slate-500">Name</span>
+        <input id="key-name" class="mt-1 block w-full rounded-md border-slate-300" placeholder="ci-pipeline" />
+      </label>
+      <label class="block">
+        <span class="text-xs uppercase text-slate-500">Role</span>
+        <select id="key-role" class="mt-1 block w-full rounded-md border-slate-300">
+          <option value="viewer">viewer</option>
+          <option value="analyst">analyst</option>
+          <option value="admin">admin</option>
+        </select>
+      </label>
+      <div id="key-result" class="hidden">
+        <p class="text-xs text-slate-500 mb-1">Copy this key now — it will not be shown again.</p>
+        <pre class="bg-slate-100 rounded p-2 text-xs font-mono overflow-auto" id="key-value"></pre>
+      </div>
+    </div>
+    <div class="p-5 border-t border-slate-200 flex gap-2 justify-end">
+      <button class="px-3 py-1.5 rounded border border-slate-300" onclick="document.getElementById('new-key').close(); window.location.reload();">Close</button>
+      <button id="key-create" type="button" onclick="createKey()" class="px-3 py-1.5 rounded bg-slate-900 text-white">Create</button>
+    </div>
+  </div>
+</dialog>
+<script>
+  async function createKey() {
+    const tok = localStorage.getItem('sundown_token');
+    const r = await fetch('/api/v1/auth/api-keys', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok},
+      body: JSON.stringify({name: document.getElementById('key-name').value, role: document.getElementById('key-role').value}),
+    });
+    if (!r.ok) { alert('Could not create key.'); return; }
+    const body = await r.json();
+    document.getElementById('key-value').textContent = body.key;
+    document.getElementById('key-result').classList.remove('hidden');
+    document.getElementById('key-create').disabled = true;
+  }
+</script>
+{% endblock %}

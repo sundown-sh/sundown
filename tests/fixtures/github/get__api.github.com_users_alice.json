@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "https://api.github.com/users/alice"
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {
+      "login": "alice",
+      "id": 1001,
+      "node_id": "MDQ6VXNlcjEwMDE=",
+      "name": "Alice Active",
+      "email": "alice@acme.com",
+      "created_at": "2021-01-04T12:00:00Z"
+    }
+  }
+}

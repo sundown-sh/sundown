@@ -1,0 +1,49 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "https://acme.okta.com/api/v1/users?limit=200"
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {"content-type": "application/json"},
+    "json": [
+      {
+        "id": "00uALICE",
+        "status": "ACTIVE",
+        "created": "2021-01-04T12:00:00.000Z",
+        "lastLogin": "2026-04-20T08:30:00.000Z",
+        "profile": {
+          "login": "alice@acme.com",
+          "email": "alice@acme.com",
+          "firstName": "Alice",
+          "lastName": "Active"
+        }
+      },
+      {
+        "id": "00uBOB",
+        "status": "SUSPENDED",
+        "created": "2019-06-12T10:00:00.000Z",
+        "lastLogin": "2026-04-09T15:45:00.000Z",
+        "profile": {
+          "login": "bob@acme.com",
+          "email": "bob@acme.com",
+          "secondEmail": "bob.personal@gmail.com",
+          "firstName": "Bob",
+          "lastName": "Boomerang"
+        }
+      },
+      {
+        "id": "00uCAROL",
+        "status": "ACTIVE",
+        "created": "2018-03-01T09:00:00.000Z",
+        "lastLogin": "2026-01-12T11:00:00.000Z",
+        "profile": {
+          "login": "carol@acme.com",
+          "email": "carol@acme.com",
+          "firstName": "Carol",
+          "lastName": "Critical"
+        }
+      }
+    ]
+  }
+}

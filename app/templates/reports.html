@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Reports · Sundown{% endblock %}
+{% block body %}
+<div class="flex items-baseline justify-between mb-6">
+  <h1 class="text-2xl font-semibold">Reports</h1>
+</div>
+
+<section class="bg-white border border-slate-200 rounded-lg p-4 mb-6">
+  <h2 class="font-medium mb-3">Generate a new report</h2>
+  <form id="gen-form" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end text-sm">
+    <label class="block">
+      <span class="text-xs uppercase tracking-wider text-slate-500">Format</span>
+      <select name="kind" class="mt-1 block w-full rounded-md border-slate-300">
+        <option value="html">HTML (printable)</option>
+        <option value="pdf">PDF</option>
+        <option value="csv">CSV</option>
+        <option value="json">JSON</option>
+      </select>
+    </label>
+    <label class="block">
+      <span class="text-xs uppercase tracking-wider text-slate-500">Severity</span>
+      <select name="severity" class="mt-1 block w-full rounded-md border-slate-300">
+        <option value="">all</option>
+        <option value="critical">critical</option>
+        <option value="high">high</option>
+        <option value="medium">medium</option>
+      </select>
+    </label>
+    <button class="px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-medium">Generate</button>
+  </form>
+</section>
+
+<section class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+  <h2 class="font-medium px-4 pt-4 pb-2">History</h2>
+  {% if reports %}
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+      <tr>
+        <th class="text-left px-4 py-2">When</th>
+        <th class="text-left px-4 py-2">Kind</th>
+        <th class="text-left px-4 py-2">Findings</th>
+        <th class="text-left px-4 py-2">By</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+    {% for r in reports %}
+      <tr>
+        <td class="px-4 py-2 text-slate-600">{{ r.created_at }}</td>
+        <td class="px-4 py-2 font-mono text-xs">{{ r.kind }}</td>
+        <td class="px-4 py-2">{{ r.ghost_count }}</td>
+        <td class="px-4 py-2 text-slate-500">{{ r.generated_by_user_id or 'system' }}</td>
+        <td class="px-4 py-2 text-right">
+          <a class="text-xs text-amber-600 hover:underline" href="/api/v1/reports/{{ r.id }}/download">download</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="p-12 text-center text-slate-500">
+      <div class="text-3xl mb-2">📄</div>
+      No reports yet. Generate one above.
+    </div>
+  {% endif %}
+</section>
+
+<script>
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const tok = localStorage.getItem('sundown_token');
+    const body = {kind: fd.get('kind'), scope: {}};
+    if (fd.get('severity')) body.scope.severity = fd.get('severity');
+    const r = await fetch('/api/v1/reports', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok},
+      body: JSON.stringify(body),
+    });
+    if (r.ok) window.location.reload();
+    else alert('Could not generate report.');
+  });
+</script>
+{% endblock %}

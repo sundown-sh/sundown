@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "https://api.bamboohr.com/api/gateway.php/acme/v1/meta/users"
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {
+      "1": {"id": 1, "displayName": "Audit Bot", "email": "audit@acme.com"}
+    }
+  }
+}

@@ -1,0 +1,63 @@
+name: sundown
+
+services:
+  sundown:
+    build: .
+    image: ghcr.io/sundown-sh/sundown:latest
+    container_name: sundown
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://sundown:sundown@db:5432/sundown}
+      SUNDOWN_SECRET_KEY: ${SUNDOWN_SECRET_KEY:?set SUNDOWN_SECRET_KEY in .env}
+      SUNDOWN_BOOTSTRAP_ADMIN_EMAIL: ${SUNDOWN_BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}
+      SUNDOWN_BOOTSTRAP_ADMIN_PASSWORD: ${SUNDOWN_BOOTSTRAP_ADMIN_PASSWORD:-}
+      SUNDOWN_LOG_LEVEL: ${SUNDOWN_LOG_LEVEL:-INFO}
+    volumes:
+      - sundown_data:/app/data
+      - sundown_reports:/app/reports/output
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  db:
+    image: postgres:16-alpine
+    container_name: sundown-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sundown
+      POSTGRES_PASSWORD: sundown
+      POSTGRES_DB: sundown
+    volumes:
+      - sundown_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sundown -d sundown"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sundown-prometheus
+    restart: unless-stopped
+    profiles: ["observability"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - sundown_prom:/prometheus
+    depends_on:
+      - sundown
+
+volumes:
+  sundown_data:
+  sundown_reports:
+  sundown_pgdata:
+  sundown_prom:

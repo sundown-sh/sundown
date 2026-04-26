@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "https://api.github.com/orgs/acme/external-identities?per_page=100"
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {
+      "nodes": [
+        {
+          "user": {"login": "alice"},
+          "samlIdentity": {"nameId": "alice@acme.com"}
+        },
+        {
+          "user": {"login": "bob"},
+          "samlIdentity": {"nameId": "bob@acme.com"}
+        }
+      ]
+    }
+  }
+}

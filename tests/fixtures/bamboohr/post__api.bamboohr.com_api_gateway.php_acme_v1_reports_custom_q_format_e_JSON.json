@@ -1,0 +1,54 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "https://api.bamboohr.com/api/gateway.php/acme/v1/reports/custom?format=JSON"
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {
+      "title": "Sundown — terminations",
+      "fields": [
+        {"id": "employeeNumber", "type": "text", "name": "Employee #"},
+        {"id": "displayName", "type": "text", "name": "Name"},
+        {"id": "workEmail", "type": "email", "name": "Work email"},
+        {"id": "status", "type": "list", "name": "Status"},
+        {"id": "hireDate", "type": "date", "name": "Hire date"},
+        {"id": "terminationDate", "type": "date", "name": "Termination date"},
+        {"id": "bestEmail", "type": "email", "name": "Best email"}
+      ],
+      "employees": [
+        {
+          "id": "101",
+          "employeeNumber": "E-101",
+          "displayName": "Alice Active",
+          "workEmail": "alice@acme.com",
+          "status": "Active",
+          "hireDate": "2021-01-04",
+          "terminationDate": null,
+          "bestEmail": "alice@acme.com"
+        },
+        {
+          "id": "201",
+          "employeeNumber": "E-201",
+          "displayName": "Bob Boomerang",
+          "workEmail": "bob@acme.com",
+          "status": "Inactive",
+          "hireDate": "2019-06-12",
+          "terminationDate": "2026-04-10",
+          "bestEmail": "bob.personal@gmail.com"
+        },
+        {
+          "id": "202",
+          "employeeNumber": "E-202",
+          "displayName": "Carol Critical",
+          "workEmail": "carol@acme.com",
+          "status": "Inactive",
+          "hireDate": "2018-03-01",
+          "terminationDate": "2026-01-01",
+          "bestEmail": "carol@acme.com"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Audit · Sundown{% endblock %}
+{% block body %}
+<div class="flex items-baseline justify-between mb-6">
+  <h1 class="text-2xl font-semibold">Audit log</h1>
+  <button class="text-sm px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50"
+          hx-get="/api/v1/audit/verify"
+          hx-swap="none"
+          hx-on::after-request="event.detail.successful ? showVerify(event.detail.xhr.response) : alert('Verification request failed.')">
+    Verify chain
+  </button>
+</div>
+
+<p id="verify-result" class="text-sm mb-4"></p>
+
+{% if events %}
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+      <tr>
+        <th class="text-left px-4 py-2">When</th>
+        <th class="text-left px-4 py-2">Actor</th>
+        <th class="text-left px-4 py-2">Action</th>
+        <th class="text-left px-4 py-2">Subject</th>
+        <th class="text-left px-4 py-2">Hash</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+    {% for e in events %}
+      <tr>
+        <td class="px-4 py-2 font-mono text-xs">{{ e.at }}</td>
+        <td class="px-4 py-2">
+          <span class="text-xs uppercase tracking-wider text-slate-500">{{ e.actor_type }}</span>
+          <span class="font-mono text-xs">{{ (e.actor_id or '')[:12] }}</span>
+        </td>
+        <td class="px-4 py-2 font-mono text-xs">{{ e.action }}</td>
+        <td class="px-4 py-2 font-mono text-xs text-slate-500">{{ e.target_type or '—' }}{% if e.target_id %}:{{ e.target_id[:8] }}…{% endif %}</td>
+        <td class="px-4 py-2 font-mono text-xs text-slate-400" title="{{ e.hash }}">{{ e.hash[:12] }}…</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">
+  No audit events yet.
+</div>
+{% endif %}
+
+<script>
+  function showVerify(body) {
+    try {
+      const j = JSON.parse(body);
+      const el = document.getElementById('verify-result');
+      el.textContent = j.ok
+        ? '✓ Audit chain intact (' + j.checked + ' events).'
+        : '✗ Audit chain broken at index ' + j.broken_at + '.';
+      el.className = 'text-sm mb-4 ' + (j.ok ? 'text-emerald-700' : 'text-rose-700');
+    } catch (e) {}
+  }
+</script>
+{% endblock %}

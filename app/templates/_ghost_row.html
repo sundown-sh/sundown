@@ -1,0 +1,34 @@
+<tr id="ghost-{{ g.id }}">
+  <td class="px-4 py-2"><span class="badge sev-{{ g.severity }}">{{ g.severity }}</span></td>
+  <td class="px-4 py-2">
+    <a href="/ghosts/{{ g.id }}" class="font-medium text-slate-900 hover:underline">{{ g.person.display_name }}</a>
+    <div class="text-xs text-slate-500">{{ g.person.work_email }}</div>
+  </td>
+  <td class="px-4 py-2">
+    <span class="font-medium">{{ g.account.connector }}</span>
+  </td>
+  <td class="px-4 py-2 text-slate-600">
+    {{ g.account.username or g.account.email or g.account.external_id }}
+  </td>
+  <td class="px-4 py-2">{{ g.days_since_termination }}</td>
+  <td class="px-4 py-2">
+    <span class="text-xs font-mono">{{ g.match.rule }}</span>
+    <span class="text-xs text-slate-400">({{ g.match.confidence }})</span>
+  </td>
+  <td class="px-4 py-2">
+    <span class="text-xs uppercase tracking-wider text-slate-500">{{ g.state }}</span>
+  </td>
+  <td class="px-4 py-2 text-right">
+    {% if g.state == 'open' %}
+      <button class="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50"
+              hx-post="/api/v1/ghosts/{{ g.id }}/ack"
+              hx-swap="outerHTML"
+              hx-target="#ghost-{{ g.id }}"
+              hx-vals='{}'>Ack</button>
+      <button class="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50"
+              hx-post="/api/v1/ghosts/{{ g.id }}/false-positive"
+              hx-swap="outerHTML"
+              hx-target="#ghost-{{ g.id }}">False+</button>
+    {% endif %}
+  </td>
+</tr>

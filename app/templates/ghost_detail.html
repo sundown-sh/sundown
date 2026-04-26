@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Ghost {{ g.person.display_name }} · Sundown{% endblock %}
+{% block body %}
+<a href="/ghosts" class="text-sm text-slate-500 hover:text-slate-900">← back to ghosts</a>
+
+<div class="mt-2 flex items-baseline gap-3">
+  <h1 class="text-2xl font-semibold">{{ g.person.display_name }}</h1>
+  <span class="badge sev-{{ g.severity }}">{{ g.severity }}</span>
+  <span class="text-sm text-slate-500">{{ g.state }}</span>
+</div>
+<p class="text-sm text-slate-500 mb-6">{{ g.person.work_email }}</p>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <section class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-medium text-slate-700 mb-3">Person</h2>
+    <dl class="text-sm space-y-2">
+      <div><dt class="text-xs uppercase text-slate-500">Employee ID</dt><dd>{{ g.person.external_id }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Status</dt><dd>{{ g.person.status }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Termination date</dt><dd>{{ g.person.termination_date }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Days since</dt><dd>{{ g.days_since_termination }}</dd></div>
+      {% if g.person.secondary_emails %}
+        <div><dt class="text-xs uppercase text-slate-500">Aliases</dt>
+          <dd>{% for e in g.person.secondary_emails %}<div class="font-mono text-xs">{{ e }}</div>{% endfor %}</dd>
+        </div>
+      {% endif %}
+    </dl>
+  </section>
+
+  <section class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-medium text-slate-700 mb-3">Account</h2>
+    <dl class="text-sm space-y-2">
+      <div><dt class="text-xs uppercase text-slate-500">Destination</dt><dd>{{ g.account.connector }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Username</dt><dd>{{ g.account.username or '—' }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Email</dt><dd>{{ g.account.email or '—' }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">External ID</dt><dd class="font-mono text-xs">{{ g.account.external_id }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Status</dt><dd>{{ g.account.status }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Last login</dt><dd>{{ g.account.last_login_at or 'unknown' }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-medium text-slate-700 mb-3">Evidence</h2>
+    <dl class="text-sm space-y-2">
+      <div><dt class="text-xs uppercase text-slate-500">Match rule</dt><dd class="font-mono">{{ g.match.rule }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Confidence</dt><dd>{{ g.match.confidence }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">First seen</dt><dd>{{ g.first_seen_at }}</dd></div>
+      <div><dt class="text-xs uppercase text-slate-500">Last seen</dt><dd>{{ g.last_seen_at }}</dd></div>
+      {% if g.match.evidence %}
+        <div>
+          <dt class="text-xs uppercase text-slate-500">Detail</dt>
+          <dd><pre class="bg-slate-50 rounded p-2 text-xs overflow-auto">{{ g.match.evidence | tojson(indent=2) }}</pre></dd>
+        </div>
+      {% endif %}
+    </dl>
+  </section>
+</div>
+
+<div class="mt-6 bg-white border border-slate-200 rounded-lg p-4">
+  <h2 class="font-medium text-slate-700 mb-3">Triage</h2>
+  <div class="flex flex-wrap gap-2">
+    <button hx-post="/api/v1/ghosts/{{ g.id }}/ack"
+            hx-on::after-request="window.location.reload()"
+            class="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50 text-sm">Acknowledge</button>
+    <button hx-post="/api/v1/ghosts/{{ g.id }}/false-positive"
+            hx-on::after-request="window.location.reload()"
+            class="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50 text-sm">Mark false positive</button>
+    <button hx-post="/api/v1/ghosts/{{ g.id }}/suppress"
+            hx-on::after-request="window.location.reload()"
+            class="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50 text-sm">Suppress (30 days)</button>
+  </div>
+  <p class="text-xs text-slate-500 mt-3">
+    Sundown is read-only. Use your IdP or destination admin to actually deprovision the account.
+  </p>
+</div>
+{% endblock %}
