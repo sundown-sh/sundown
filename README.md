@@ -26,8 +26,9 @@ Every offboarding process leaks. People leave, tickets get closed, and three
 months later there's still a Slack workspace, a GitHub seat, and an Okta
 account active for someone who hasn't worked at your company since spring.
 
-Auditors call these **ghost accounts**. They are the single most common
-SOC 2 / ISO 27001 finding, and the single most common way breaches start.
+Auditors call these **ghost accounts**. They're a leading driver of
+access-control findings in SOC 2 and ISO 27001 audits, and they're how
+many breaches actually start.
 
 Sundown finds them. That's it. **Sundown never touches your systems** — it
 reads from your HRIS, reads from your SaaS apps, cross-references the two,
