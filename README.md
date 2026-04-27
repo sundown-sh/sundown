@@ -12,6 +12,10 @@ who have already been terminated in your HR system.
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
+<br />
+
+<img src="docs/images/dashboard.png" alt="Sundown dashboard showing seven open ghost accounts across Okta, GitHub, and BambooHR with severity, person, destination, and days-since-termination columns." width="900" />
+
 </div>
 
 ---
