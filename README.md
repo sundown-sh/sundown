@@ -58,11 +58,41 @@ and produces a clean, auditor-ready report you can hand to your CISO.
 
 ## Quickstart — first ghost in 5 minutes
 
+### Docker Compose (recommended)
+
 ```bash
 git clone https://github.com/sundown-sh/sundown.git
 cd sundown
 cp .env.example .env
-# edit .env, at minimum set SUNDOWN_SECRET_KEY and SUNDOWN_BOOTSTRAP_ADMIN_PASSWORD
+```
+
+PowerShell: `Copy-Item .env.example .env`
+
+Edit `.env` in the project root (same folder as `docker-compose.yml`):
+
+1. **`SUNDOWN_SECRET_KEY`** — signing key for JWTs and cookies. Must be at
+   least 16 characters. Generate one and paste it into `.env`:
+
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(48))"
+   ```
+
+   (PowerShell: run the same command; it works with Python 3 installed.)
+
+   `.env.example` already contains a placeholder long enough for local QA,
+   but **you must not leave the file blank** — Docker Compose expands
+   `${SUNDOWN_SECRET_KEY:?...}` before the app starts; if the variable is
+   missing or empty you will see:
+
+   `required variable SUNDOWN_SECRET_KEY is missing a value`
+
+2. **`SUNDOWN_BOOTSTRAP_ADMIN_PASSWORD`** — password for the first admin user
+   (`SUNDOWN_BOOTSTRAP_ADMIN_EMAIL`, default `admin@example.com`). Set a
+   strong password here before first boot.
+
+Then:
+
+```bash
 docker compose up -d
 ```
 
@@ -78,6 +108,8 @@ with the bootstrap admin you set in `.env`, and walk through the setup wizard:
 That's it. No SaaS account, no credit card, no telemetry.
 
 ### Even faster: try it on the demo data
+
+After `.env` has `SUNDOWN_SECRET_KEY` and `SUNDOWN_BOOTSTRAP_ADMIN_PASSWORD`:
 
 ```bash
 docker compose run --rm sundown python -m scripts.seed
